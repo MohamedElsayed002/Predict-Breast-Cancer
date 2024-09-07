@@ -1,7 +1,8 @@
 import streamlit as st 
 import pickle 
 import pandas as pd 
-
+import plotly.graph_objects as go
+import numpy as np 
 #  streamlit run app/main.py
 
 def get_clean_data():
@@ -10,6 +11,103 @@ def get_clean_data():
     data['diagnosis'] = data['diagnosis'].map({'M':1,'B':0})
 
     return data
+
+
+def get_scaled_values(input_dict):
+    data = get_clean_data()
+    X = data.drop(['diagnosis'],axis=1)
+   
+    scaled_dict = {}
+
+    for key , value in input_dict.items():
+        max_val = X[key].max()
+        min_val = X[key].min()
+        scaled_value = (value - min_val) / (max_val - min_val)
+        scaled_dict[key] = scaled_value
+    
+    return scaled_dict
+
+
+
+
+   
+
+def get_radar_chart(input_data):
+   
+
+    # Input data scaled 
+    input_data = get_scaled_values(input_data)
+    
+
+    categories = ['Radius', 'Texture', 'Perimeter', 'Area', 
+                'Smoothness', 'Compactness', 
+                'Concavity', 'Concave Points',
+                'Symmetry', 'Fractal Dimension']
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatterpolar(
+          r=[
+              input_data['radius_mean'],
+              input_data['texture_mean'],
+              input_data['perimeter_mean'],
+              input_data['area_mean'],
+              input_data['smoothness_mean'],
+              input_data['compactness_mean'],
+              input_data['concavity_mean'],
+              input_data['concave points_mean'],
+              input_data['symmetry_mean'],
+              input_data['fractal_dimension_mean']
+          ],
+          theta=categories,
+          fill='toself',
+          name='Mean Value'
+    ))
+    fig.add_trace(go.Scatterpolar(
+          r=[
+              input_data['radius_se'],
+              input_data['texture_se'],
+              input_data['perimeter_se'],
+              input_data['area_se'],
+              input_data['smoothness_se'],
+              input_data['compactness_se'],
+              input_data['concavity_se'],
+              input_data['concave points_se'],
+              input_data['symmetry_se'],
+              input_data['fractal_dimension_se']
+          ],
+          theta=categories,
+          fill='toself',
+          name='Standart Error'
+    ))
+
+    fig.add_trace(go.Scatterpolar(
+          r=[
+              input_data['radius_worst'],
+              input_data['texture_worst'],
+              input_data['perimeter_worst'],
+              input_data['area_worst'],
+              input_data['smoothness_worst'],
+              input_data['compactness_worst'],
+              input_data['concavity_worst'],
+              input_data['concave points_worst'],
+              input_data['symmetry_worst'],
+              input_data['fractal_dimension_worst']
+          ],
+          theta=categories,
+          fill='toself',
+          name='Worst Value'
+    ))
+
+    fig.update_layout(
+      polar=dict(
+        radialaxis=dict(
+          visible=True,
+          range=[0, 1]
+        )),
+      showlegend=True
+    )
+
+    return fig
 
 
 def add_sidebar():
@@ -62,6 +160,35 @@ def add_sidebar():
     
   return input_dict
 
+
+def add_predictions(input_data):
+  model_path = r"C:\Users\pc\OneDrive\Desktop\Project2\app\model.pkl"
+  scaler_path = r"C:\Users\pc\OneDrive\Desktop\Project2\app\scaler.pkl"
+  with open(model_path,'rb') as file:
+     model = pickle.load(file)
+  
+  with open(scaler_path,'rb') as file:
+     scaler = pickle.load(file)
+
+  input_array = np.array(list(input_data.values())).reshape(1,-1)
+
+  input_array_scaled = scaler.transform(input_array)
+
+  st.subheader('Cell Cluster Prediction')
+  st.write('The cell cluster')
+
+  prediction = model.predict(input_array_scaled)
+
+  if prediction[0] == 0:
+     st.write('Benign')
+  else:
+     st.write('Malicious')
+
+  st.write('Probability of being benign: ', model.predict_proba(input_array_scaled)[0][0])
+  st.write('Probability of being malignant: ', model.predict_proba(input_array_scaled)[0][1])
+
+  st.write(prediction)
+
 def main():
 
     st.set_page_config(
@@ -72,7 +199,7 @@ def main():
     )
 
     input_data = add_sidebar()
-    st.write(input_data)
+    # st.write(input_data)
 
     with st.container():
         st.title('Breast Cancer Predictor')
@@ -81,10 +208,14 @@ def main():
     col1,col2 = st.columns([4,1])  
 
     with col1:
-        st.write('this column1')
-    
+
+      radar_chart =  get_radar_chart(input_data)
+      st.plotly_chart(radar_chart)
+
+
     with col2:
-        st.write('this column2')
+       
+       add_predictions(input_data)
 
 
 if __name__ == '__main__':
