@@ -162,12 +162,13 @@ def add_sidebar():
 
 
 def add_predictions(input_data):
-  model_path = r"C:\Users\pc\OneDrive\Desktop\Project2\app\model.pkl"
-  scaler_path = r"C:\Users\pc\OneDrive\Desktop\Project2\app\scaler.pkl"
-  with open(model_path,'rb') as file:
+  # model_path = r"C:\Users\pc\OneDrive\Desktop\Project2\app\model.pkl"
+  # scaler_path = r"C:\Users\pc\OneDrive\Desktop\Project2\app\scaler.pkl"
+
+  with open('app/model.pkl','rb') as file:
      model = pickle.load(file)
   
-  with open(scaler_path,'rb') as file:
+  with open('app/scaler.pkl','rb') as file:
      scaler = pickle.load(file)
 
   input_array = np.array(list(input_data.values())).reshape(1,-1)
